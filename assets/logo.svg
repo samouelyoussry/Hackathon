@@ -1,0 +1,8 @@
+<svg width="250" height="80" viewBox="0 0 250 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <path d="M45 25C56.0457 25 65 33.9543 65 45C65 56.0457 56.0457 65 45 65C33.9543 65 25 56.0457 25 45C25 33.9543 33.9543 25 45 25Z" fill="#F8F9FA" stroke="#4F46E5" stroke-width="3"/>
+    <text x="38" y="53" font-family="Arial" font-weight="bold" font-size="24" fill="#333333">D</text>
+    <circle cx="53" cy="45" r="4" fill="#22C55E"/>
+    <text x="75" y="53" font-family="Arial" font-weight="500" font-size="24" fill="#333333">Bot</text>
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+langchain
+langchain-community
+langchain-google-vertexai
+fastapi
+uvicorn
+python-multipart
+pandas
+pydantic
+PyGithub
+google-cloud-aiplatform
+python-dotenv

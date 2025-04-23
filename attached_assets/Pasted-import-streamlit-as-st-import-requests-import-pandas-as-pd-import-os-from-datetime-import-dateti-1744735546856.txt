@@ -1,0 +1,222 @@
+import streamlit as st
+import requests
+import pandas as pd
+import os
+from datetime import datetime, timedelta
+from github import Github
+from langchain_google_vertexai import VertexAI
+from langchain_core.runnables import RunnablePassthrough
+from langchain.prompts import PromptTemplate
+from google.cloud import aiplatform
+import json
+from urllib.parse import urlparse 
+
+# Load JSON from file
+with open("gcp-service-account.json", "r") as f:
+    service_account_info = json.load(f)
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gcp-service-account.json"
+
+# Initialize Vertex AI
+aiplatform.init(
+    project=service_account_info["project_id"],
+    location="us-east1"
+)
+
+# Create LLM instance
+llm = VertexAI(
+    model_name="gemini-1.5-pro",
+    temperature=0.3,
+    project=service_account_info["project_id"],
+    location="us-central1"
+)
+
+class LocalGitHubLoader:
+    def __init__(self, token):
+        # SSL Verification Workaround
+        self.session = requests.Session()
+        self.session.verify = False  # Development only!
+        
+        # Initialize GitHub client
+        self.g = Github(auth=token)
+        
+        # Patch the session
+        self.g._Github__requester._session = self.session
+        
+    def get_yesterdays_commits(self, repo_name):
+        repo = self.g.get_repo(repo_name)
+        since = datetime.now() - timedelta(days=1)
+        commits = list(repo.get_commits(since=since))
+        
+        commit_data = []
+        for commit in commits:
+            stats = commit.stats
+            commit_data.append({
+                'time': commit.commit.author.date.strftime("%H:%M"),
+                'message': commit.commit.message.split("\n")[0][:50],
+                'changes': f"+{stats.additions}/-{stats.deletions}",
+                'files': len(list(commit.files)),
+                'url': commit.html_url
+            })
+        return pd.DataFrame(commit_data)
+    
+    def get_github_diff(self, url):
+        """Fetch detailed diff content including line changes"""
+        parsed = urlparse(url)
+        path_parts = parsed.path.strip("/").split("/")
+        
+        if (len(path_parts) < 4 or 
+            "github.com" not in parsed.netloc or 
+            "commit" not in path_parts):
+            raise ValueError(f"Invalid GitHub commit URL format: {url}")
+        
+        commit_index = path_parts.index("commit") if "commit" in path_parts else -1
+        if commit_index == -1 or commit_index+1 >= len(path_parts):
+            raise ValueError(f"Could not find commit SHA in URL: {url}")
+        
+        owner = path_parts[0]
+        repo = path_parts[1]
+        commit_sha = path_parts[commit_index+1]
+        
+        repo = self.g.get_repo(f"{owner}/{repo}")
+        commit = repo.get_commit(commit_sha)
+        
+        files = []
+        for file in commit.files:
+            files.append({
+                'filename': file.filename,
+                'status': file.status,
+                'additions': file.additions,
+                'deletions': file.deletions,
+                'patch': file.patch,
+                'raw_url': file.raw_url
+            })
+        
+        return {
+            'type': 'commit',
+            'sha': commit_sha,
+            'message': commit.commit.message,
+            'author': commit.commit.author.name,
+            'date': commit.commit.author.date,
+            'files': files
+        }
+
+def create_analysis_chain():
+    prompt = PromptTemplate.from_template("""
+    Analyze these GitHub commits:
+    {commits} here is the detailed changes 
+    
+    Provide:
+    1. 🏆 Key accomplishments
+    2. ⏱ Estimated focus time (based on commit times) and working hours from 9 to 5 EST
+    3. 🚧 Potential blockers that I faced while making this code
+    4. ➡️ Recommended next steps
+    
+    Keep it concise with bullet points as I will use this as the guidelines while talking in today's standup.
+    """)
+    
+    return (
+        {"commits": RunnablePassthrough()} 
+        | prompt 
+        | llm
+    )
+
+def create_url_analysis_chain():
+    prompt = PromptTemplate.from_template("""
+    Analyze this GitHub change:
+    {diff_data}
+    
+    Provide detailed insights on:
+    1. Code changes impact
+    2. Potential risks
+    3. Review priorities
+    4. Related files to check
+    
+    Format as markdown with clear sections.
+    """)
+    return {"diff_data": RunnablePassthrough()} | prompt | llm
+
+def generate_report(repo_name, token, days=1):
+    try:
+        loader = LocalGitHubLoader(token)
+        commits_df = loader.get_yesterdays_commits(repo_name)
+        
+        if commits_df.empty:
+            return "✨ No commits found in the selected time period"
+        
+        # Get analysis of all commits
+        analysis_response = create_analysis_chain().invoke({
+            "commits": commits_df.to_markdown(),
+            "diff_data": ""
+        })
+        
+        # Get detailed analysis of first commit
+        github_url = commits_df.iloc[0]['url']
+        diff_data = loader.get_github_diff(github_url)
+        url_response = create_url_analysis_chain().invoke(str(diff_data))
+        
+        # Format the output
+        report = f"""
+        ## 🚀 Repository Analysis - {repo_name}
+        ### 📅 Last {days} day(s) of activity
+        
+        ### 📝 Commit Summary
+        {commits_df.to_markdown(index=False)}
+        
+        ### 🔍 Overall Analysis
+        {getattr(analysis_response, 'content', str(analysis_response))}
+        
+        ### 🔎 Deep Dive: [Latest Commit]({github_url})
+        {getattr(url_response, 'content', str(url_response))}
+        """
+        
+        return report
+    except Exception as e:
+        return f"❌ Error generating report: {str(e)}"
+
+# Streamlit UI
+st.title("📊 AI Analysis")
+
+if "access_token" in st.session_state:
+    token = st.session_state["access_token"]
+    
+    # === Additional SSL Fix for the repos listing ===
+    repos_session = requests.Session()
+    repos_session.verify = False
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    try:
+        repos_resp = repos_session.get(
+            "https://api.github.com/user/repos",
+            headers=headers,
+            params={"per_page": 100}
+        )
+        repos = repos_resp.json()
+    except Exception as e:
+        st.error(f"Failed to fetch repositories: {str(e)}")
+        repos = []
+    
+    if isinstance(repos, list) and repos:
+        repo_names = [repo["full_name"] for repo in repos]
+        selected_repo = st.selectbox("📂 Choose a repo to analyze", repo_names)
+        
+        with st.form("analyze_form"):
+            days = st.number_input(
+                "Number of days to analyze:", 
+                min_value=1, 
+                max_value=30,
+                value=1
+            )
+            submitted = st.form_submit_button("Analyze")
+
+            if submitted:
+                with st.spinner("Generating analysis..."):
+                    try:
+                        report = generate_report(selected_repo, token, days)
+                        st.markdown(report, unsafe_allow_html=True)
+                    except Exception as e:
+                        st.error(f"Analysis failed: {str(e)}")
+    else:
+        st.warning("No repositories found or token invalid.")
+else:
+    st.warning("Please log in with GitHub first.")
