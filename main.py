@@ -1,31 +1,18 @@
 import streamlit as st
 import requests
-import os 
-# from dotenv import load_dotenv
-import analysis
-from langchain_google_vertexai import VertexAI
-from langchain_core.runnables import RunnablePassthrough
-from langchain.prompts import PromptTemplate
 from github import Github
-from datetime import datetime, timedelta
-import pandas as pd
 import os
-from dotenv import load_dotenv
-from google.cloud import aiplatform
-from urllib.parse import urlparse
-from langchain_core.runnables import RunnableParallel
-import requests
-import base64
+
+import analysis
 
 # Load environment variables
 # load_dotenv()
 
 # Configuration
-GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "Ov23li7VLjufh99QANN9")
-GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "1a1a346a1c8bcb35d5a3e8920e05b59f50df05c8")
-REDIRECT_URI = os.getenv("REDIRECT_URI", "http://localhost:8501/")
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "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")
-os.environ["GITHUB_TOKEN"]="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"
+GITHUB_CLIENT_ID = "Ov23li7VLjufh99QANN9"
+GITHUB_CLIENT_SECRET = "1a1a346a1c8bcb35d5a3e8920e05b59f50df05c8"
+REDIRECT_URI = "http://localhost:8501/" 
+github_auth_url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read:user user:email"
 
 # Page configuration
 st.set_page_config(
@@ -45,12 +32,7 @@ if "page" not in st.session_state:
 github_auth_url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read:user user:email"
 
 # Function to handle GitHub OAuth
-def handle_github_auth():
-    # Check for direct token
-    if not st.session_state.get("access_token") and GITHUB_TOKEN:
-        st.session_state["access_token"] = GITHUB_TOKEN
-        st.session_state.authenticated = True
-        
+def handle_github_auth():        
     # Handle OAuth code
     query_params = st.query_params
     code = query_params.get("code")
@@ -162,14 +144,25 @@ def create_nav():
                     st.rerun()
     
     with cols[2]:
-        if st.session_state.authenticated:
-            if "username" in st.session_state:
-                st.markdown(f"""
-                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px;">
-                    <span style="color: #4b5563;">👤 {st.session_state.username}</span>
-                    <button style="padding: 5px 10px; background-color: #f3f4f6; border: none; border-radius: 4px; color: #4b5563; font-size: 0.8rem; cursor: pointer;" onclick="window.location.href='/logout'">Logout</button>
-                </div>
-                """, unsafe_allow_html=True)
+        if st.session_state.get("authenticated", False):
+           col1, col2 = st.columns([2, 1])
+           with col1:
+            st.markdown(f"👤 {st.session_state.username}")
+           with col2:
+            logout_button = st.button("Logout")
+            if logout_button:
+                st.session_state.clear()
+                st.rerun()
+            st.markdown("""
+                <style>
+                .stButton>button {
+                    width: 101%;
+                    height: 40px;  /* Optional: Control button height */
+                    font-size: 16px;  /* Optional: Control font size */
+                }
+                </style>
+            """, unsafe_allow_html=True)
+            
         else:
             st.markdown(f"""
             <div style="display: flex; justify-content: flex-end;">

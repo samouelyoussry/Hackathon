@@ -1,10 +1,13 @@
+import cron_descriptor
 import streamlit as st
 import requests
 import pandas as pd
 import os
 import json
 from datetime import datetime, timedelta
+from cron_descriptor import FormatException, get_description
 from utils import LocalGitHubLoader, create_analysis_chain, create_url_analysis_chain
+from cron_descriptor import get_description
 
 def show_analysis_page():
     st.title("📊 GitHub Repository Analysis")
@@ -90,10 +93,21 @@ def fetch_repositories(token):
 
 def show_commit_analysis(repo_name, token):
     with st.form("analyze_form"):
-        col1, col2 = st.columns([3, 1])
-        
+        st.markdown("**Configure your analysis**")
+        col1, col2 = st.columns(2)
         with col1:
-            st.write("Configure your analysis:")
+            cron_expression = st.text_input(
+                "Schedule (Cron Expression):",
+                placeholder="e.g., * * * * * or 0 9 * * MON-FRI",
+                help="Specify the schedule using Cron syntax. "
+                     "Refer to online resources for Cron expression help."
+            )
+            if cron_expression:
+                try:
+                    description = cron_descriptor.get_description(cron_expression)
+                    st.info(f"Schedule Description: {description}")
+                except FormatException as e: 
+                    st.error(f"Invalid Cron expression: {e}. Please check the syntax.")
         
         with col2:
             days = st.number_input(
@@ -109,12 +123,12 @@ def show_commit_analysis(repo_name, token):
         if submitted:
             generate_report(repo_name, token, days)
 
-def generate_report(repo_name, token, days=1):
+def generate_report(repo_name, token, days):
     try:
         with st.spinner("Fetching commits and generating analysis..."):
             # Initialize GitHub loader and fetch commits
             loader = LocalGitHubLoader(token)
-            commits_df = loader.get_yesterdays_commits(repo_name)
+            commits_df = loader.get_repo_commits(repo_name,days)
             
             if commits_df.empty:
                 st.info("No commits found in the selected time period.")
@@ -167,6 +181,8 @@ def generate_report(repo_name, token, days=1):
                 with col2:
                     st.markdown("### 🔎 Detailed Analysis")
                     st.markdown(getattr(url_response, 'content', str(url_response)))
-                    
+    except ImportError as e:
+        st.error(f"Missing dependencies: {e}. Try installing them via pip.")
     except Exception as e:
-        st.error(f"Error generating report: {str(e)}")
+        st.error(f"An unexpected error occurred: {e}")
+
