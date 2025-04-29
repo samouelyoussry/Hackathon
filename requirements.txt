@@ -9,3 +9,6 @@ pydantic
 PyGithub
 google-cloud-aiplatform
 python-dotenv
+###########
+cron-descriptor
+tabulate
