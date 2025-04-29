@@ -100,7 +100,7 @@ def show_commit_analysis(repo_name, token):
                 "Schedule (Cron Expression):",
                 placeholder="e.g., * * * * * or 0 9 * * MON-FRI",
                 help="Specify the schedule using Cron syntax. "
-                    "Refer to online resources for Cron expression help."
+                     "Refer to online resources for Cron expression help."
             )
             if cron_expression:
                 try:
