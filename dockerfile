@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # Install pip and Streamlit separately to ensure it's available in PATH
-RUN pip install --upgrade pip && pip install streamlit
+RUN pip install --upgrade pip && pip install streamlit 
 
 # Copy project files
 COPY . /app/
@@ -26,4 +26,4 @@ RUN pip install -r requirements.txt
 EXPOSE 8501
 
 # Run the Streamlit app using Python -m to ensure it's found
-CMD ["python", "-m", "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["python", "-m", "streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
