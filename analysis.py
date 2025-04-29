@@ -97,11 +97,11 @@ def show_commit_analysis(repo_name, token):
         col1, col2 = st.columns(2)
         with col1:
             cron_expression = st.text_input(
-                 "Schedule (Cron Expression):",
-                 placeholder="e.g., * * * * * or 0 9 * * MON-FRI",
-                 help="Specify the schedule using Cron syntax. "
-                      "Refer to online resources for Cron expression help."
-             )
+                "Schedule (Cron Expression):",
+                placeholder="e.g., * * * * * or 0 9 * * MON-FRI",
+                help="Specify the schedule using Cron syntax. "
+                    "Refer to online resources for Cron expression help."
+            )
             if cron_expression:
                 try:
                     description = cron_descriptor.get_description(cron_expression)
