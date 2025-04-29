@@ -6,7 +6,7 @@ import os
 import json
 from datetime import datetime, timedelta
 from cron_descriptor import FormatException, get_description
-from utils import LocalGitHubLoader, create_analysis_chain, create_url_analysis_chain
+from utils import LocalGitHubLoader, create_analysis_chain, create_url_analysis_chain, parseURL
 from cron_descriptor import get_description
 
 def show_analysis_page():
@@ -97,11 +97,11 @@ def show_commit_analysis(repo_name, token):
         col1, col2 = st.columns(2)
         with col1:
             cron_expression = st.text_input(
-                "Schedule (Cron Expression):",
-                placeholder="e.g., * * * * * or 0 9 * * MON-FRI",
-                help="Specify the schedule using Cron syntax. "
-                     "Refer to online resources for Cron expression help."
-            )
+                 "Schedule (Cron Expression):",
+                 placeholder="e.g., * * * * * or 0 9 * * MON-FRI",
+                 help="Specify the schedule using Cron syntax. "
+                      "Refer to online resources for Cron expression help."
+             )
             if cron_expression:
                 try:
                     description = cron_descriptor.get_description(cron_expression)
@@ -154,20 +154,26 @@ def generate_report(repo_name, token, days):
             # Generate AI analysis
             with st.spinner("AI is analyzing your commits..."):
                 # Get analysis of all commits
-                analysis_response = create_analysis_chain().invoke({
-                    "commits": commits_df.to_markdown(),
-                    "diff_data": ""
-                })
-                
+                if repo_name:
+                    github_url = commits_df.iloc[0]['url']
+                    owner, repo, commit_sha = parseURL(github_url)
+                    diff_data = loader.get_github_diff(github_url)
+                    query = (f"Here are some code changes in a commit {commit_sha}:\n"
+                    f"{diff_data}\n"
+                    "What other repository files are relevant to understanding these changes?")
+                    repo_context = loader.get_relevant_context(github_url, commit_sha, query)
+                # !!must have repo name
                 # Get detailed analysis of first commit if available
-                if not commits_df.empty:
-                    try:
-                        github_url = commits_df.iloc[0]['url']
-                        diff_data = loader.get_github_diff(github_url)
-                        url_response = create_url_analysis_chain().invoke(str(diff_data))
-                    except Exception as e:
-                        st.warning(f"Could not fetch detailed commit data: {str(e)}")
-                        url_response = "Detail analysis unavailable."
+                    if not commits_df.empty:
+                        try:
+                            analysis_response = create_analysis_chain().invoke({"commits_df": commits_df.to_markdown(), "diff_data": diff_data,"repo_context": repo_context})
+                            github_url = commits_df.iloc[0]['url']
+                            # diff_data = loader.get_github_diff(github_url)
+                            url_response = create_url_analysis_chain().invoke({"diff_data": str(diff_data),"repo_context":repo_context})
+                            # url_response = create_url_analysis_chain().invoke(str(diff_data))
+                        except Exception as e:
+                            st.warning(f"Could not fetch detailed commit data: {str(e)}")
+                            url_response = "Detail analysis unavailable."
                 
                 # Display the analysis results
                 st.subheader("🔍 AI Analysis")
@@ -185,4 +191,3 @@ def generate_report(repo_name, token, days):
         st.error(f"Missing dependencies: {e}. Try installing them via pip.")
     except Exception as e:
         st.error(f"An unexpected error occurred: {e}")
-
