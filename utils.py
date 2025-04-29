@@ -1,3 +1,4 @@
+from turtle import st
 import requests
 import pandas as pd
 import os
@@ -48,22 +49,12 @@ def init_vertex_ai():
 # GitHub API integration
 class LocalGitHubLoader:
     def __init__(self, token):
-        # SSL Verification Workaround
-        self.session = requests.Session()
-        self.session.verify = False  # Development only!
-        
-        # Initialize GitHub client
-        self.g = Github(auth=token)
-        
-        # Patch the session
-        self.g._Github__requester._session = self.session
-        
-    def get_yesterdays_commits(self, repo_name):
+        self.g = Github(token) if token else Github()
+    def get_repo_commits(self,repo_name,days):
         try:
             repo = self.g.get_repo(repo_name)
-            since = datetime.now() - timedelta(days=1)
+            since = datetime.now() - timedelta(days=days)
             commits = list(repo.get_commits(since=since))
-            
             commit_data = []
             for commit in commits:
                 stats = commit.stats
