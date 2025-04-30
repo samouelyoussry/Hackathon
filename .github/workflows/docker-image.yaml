@@ -1,0 +1,50 @@
+# This GitHub Actions workflow builds and pushes a Docker image to Google Artifact Registry (GAR)
+name: Build and Push Docker Image to GAR
+
+# Triggers:
+on:
+  push:
+    branches:
+      - main                 # 🔁 Runs automatically when pushing to the 'main' branch
+  workflow_dispatch:         # 🧑‍💻 Also allows manual triggering from GitHub UI
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest   # Use the latest Ubuntu environment for this job
+
+    steps:
+      # Step 1: Checkout your repository code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Docker Buildx (advanced builder for cross-platform builds)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Step 3: Decode the GCP service account key stored as base64 in GITHUB secrets
+      - name: Decode GCP service account key
+        run: |
+          echo "${{ secrets.GCP_SA_KEY }}" | base64 -d > "${HOME}/gcp-key.json"
+
+      # Step 4: Authenticate to GCP using the service account key
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      # Step 5: Configure Docker to push to your Artifact Registry (GAR)
+      - name: Configure Docker for GAR
+        run: |
+          gcloud auth configure-docker us-east1-docker.pkg.dev
+
+      # Step 6: Build and push the Docker image to GAR
+      - name: Build and push Docker image
+        run: |
+          # Build full image name using static GAR path (region + project + repo + image name)
+          IMAGE_NAME=us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot
+          
+          # Build the Docker image using the Dockerfile in the root directory
+          docker build -t $IMAGE_NAME:latest -f dockerfile .
+
+          # Push the image to Artifact Registry
+          docker push $IMAGE_NAME:latest
