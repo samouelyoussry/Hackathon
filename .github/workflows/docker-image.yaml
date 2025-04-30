@@ -3,7 +3,7 @@ name: Build and Push Docker Image to GAR
 
 on:
   #push:
-   # branches:
+    #branches:
       #- main  # Runs automatically when pushing to the 'main' branch
   workflow_dispatch:  # Allows manual triggering from GitHub UI
 
@@ -36,26 +36,31 @@ jobs:
         run: |
           gcloud auth configure-docker us-east1-docker.pkg.dev
 
-      # Step 6: Build and push the Docker image to GAR using unique tag
+      # Step 6: Build and push Docker image with unique tag
       - name: Build and push Docker image
         run: |
           SHORT_SHA=$(git rev-parse --short HEAD)
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          IMAGE_TAG="$SHORT_SHA-$TIMESTAMP"
           IMAGE_NAME=us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot
-          
-          # Build with short SHA tag
-          docker build -t $IMAGE_NAME:$SHORT_SHA -f dockerfile .
 
-          # Push the image with SHA tag (not 'latest')
-          docker push $IMAGE_NAME:$SHORT_SHA
+          # Build the Docker image
+          docker build -t $IMAGE_NAME:$IMAGE_TAG -f dockerfile .
+
+          # Push to Artifact Registry
+          docker push $IMAGE_NAME:$IMAGE_TAG
+
+          # Save for later steps
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 
       # Step 7: Deploy to Cloud Run
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy standup-bot \
-            --image=$IMAGE_NAME:$SHORT_SHA \
+            --image=$IMAGE_NAME:$IMAGE_TAG \
             --region=us-central1 \
             --platform=managed \
             --service-account=standup-bot-sa@nse-gcp-ema-tt-37ab4-sbx-1.iam.gserviceaccount.com \
             --no-allow-unauthenticated \
             --quiet
-
