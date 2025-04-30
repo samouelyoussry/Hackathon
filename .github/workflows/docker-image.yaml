@@ -1,16 +1,15 @@
 # This GitHub Actions workflow builds and pushes a Docker image to Google Artifact Registry (GAR)
 name: Build and Push Docker Image to GAR
 
-# Triggers:
 on:
   push:
     branches:
-      - main                 # 🔁 Runs automatically when pushing to the 'main' branch
-  workflow_dispatch:         # 🧑‍💻 Also allows manual triggering from GitHub UI
+      - main  # Runs automatically when pushing to the 'main' branch
+  workflow_dispatch:  # Allows manual triggering from GitHub UI
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest   # Use the latest Ubuntu environment for this job
+    runs-on: ubuntu-latest  # Use the latest Ubuntu environment for this job
 
     steps:
       # Step 1: Checkout your repository code
@@ -37,14 +36,14 @@ jobs:
         run: |
           gcloud auth configure-docker us-east1-docker.pkg.dev
 
-      # Step 6: Build and push the Docker image to GAR
+      # Step 6: Build and push the Docker image to GAR using unique tag
       - name: Build and push Docker image
         run: |
-          # Build full image name using static GAR path (region + project + repo + image name)
+          SHORT_SHA=$(git rev-parse --short HEAD)
           IMAGE_NAME=us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot
           
-          # Build the Docker image using the Dockerfile in the root directory
-          docker build -t $IMAGE_NAME:latest -f dockerfile .
+          # Build with short SHA tag
+          docker build -t $IMAGE_NAME:$SHORT_SHA -f dockerfile .
 
-          # Push the image to Artifact Registry
-          docker push $IMAGE_NAME:latest
+          # Push the image with SHA tag (not 'latest')
+          docker push $IMAGE_NAME:$SHORT_SHA
