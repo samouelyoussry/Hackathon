@@ -4,21 +4,17 @@ options:
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
-      [
-        'build',
-        '-t',
-        'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA',
-        '-f',
-        'dockerfile',
-        '.'
-      ]
+      - 'build'
+      - '-t'
+      - 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA'
+      - '-f'
+      - 'dockerfile'
+      - '.'
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
-      [
-        'push',
-        'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA'
-      ]
+      - 'push'
+      - 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA'
 
 images:
   - 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA'
