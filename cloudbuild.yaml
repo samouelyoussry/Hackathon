@@ -1,0 +1,26 @@
+# cloudbuild.yaml - Cloud Build pipeline to build and push Docker image to Artifact Registry
+
+steps:
+  # Step 1: Build the Docker image from Dockerfile
+  - name: 'gcr.io/cloud-builders/docker'   # Docker build step
+    args:
+      [
+        'build',                            # Run docker build command
+        '-t',                               # Tag the image as:
+        'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA',
+        '-f',                               # Use custom Dockerfile name
+        'dockerfile',                       # Your Dockerfile is named lowercase 'dockerfile'
+        '.'                                 # Use current directory as build context
+      ]
+
+  # Step 2: Push the tagged Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'push',                             # Push the image
+        'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA'
+      ]
+
+# Step 3 (optional): Let Cloud Build know what images were built (for tracking in UI)
+images:
+  - 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA'
