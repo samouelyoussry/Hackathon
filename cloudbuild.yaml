@@ -2,9 +2,10 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _TAG_SUFFIX: $SHORT_SHA-$BUILD_ID  # ensures uniqueness per build
+  _TAG_SUFFIX: '${SHORT_SHA}-${BUILD_ID}'  # Unique tag for each build to avoid immutability issues
 
 steps:
+  # Step 1: Build Docker image and tag it with _TAG_SUFFIX
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
@@ -16,6 +17,7 @@ steps:
         '.'
       ]
 
+  # Step 2: Push the image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
@@ -23,17 +25,19 @@ steps:
         'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}'
       ]
 
+  # Step 3: Deploy the image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       [
-        'run', 'deploy', 'standup-bot',
+        'run', 'deploy', 'standup-bot',                              # Cloud Run service name
         '--image', 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}',
-        '--region', 'us-east1',
-        '--platform', 'managed',
-        '--allow-unauthenticated',
+        '--region', 'us-east1',                                     # Cloud Run region
+        '--platform', 'managed',                                    # Fully managed Cloud Run
+        '--allow-unauthenticated',                                  # Public access
         '--service-account', 'standup-bot-sa@nse-gcp-ema-tt-37ab4-sbx-1.iam.gserviceaccount.com'
       ]
 
+# Optional: registers the final image in Cloud Build's metadata
 images:
   - 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}'
