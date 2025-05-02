@@ -2,7 +2,7 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _TAG_SUFFIX: $SHORT_SHA-$(date +%s)
+  _TAG_SUFFIX: $SHORT_SHA-$BUILD_ID  # ensures uniqueness per build
 
 steps:
   - name: 'gcr.io/cloud-builders/docker'
