@@ -2,10 +2,10 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _TAG_SUFFIX: '${SHORT_SHA}-${BUILD_ID}'  # Unique tag for each build to avoid immutability issues
+  _TAG_SUFFIX: '${SHORT_SHA}-${BUILD_ID}'  # Unique tag to avoid immutability issues
 
 steps:
-  # Step 1: Build Docker image and tag it with _TAG_SUFFIX
+  # Step 1: Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
@@ -25,7 +25,7 @@ steps:
         'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}'
       ]
 
-  # Step 3: Deploy the image to Cloud Run
+  # Step 3: Deploy to Cloud Run on port 8501
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -35,9 +35,10 @@ steps:
         '--region', 'us-east1',                                     # Cloud Run region
         '--platform', 'managed',                                    # Fully managed Cloud Run
         '--allow-unauthenticated',                                  # Public access
+        '--port', '8501',                                           # 👈 Cloud Run will listen on this port
         '--service-account', 'standup-bot-sa@nse-gcp-ema-tt-37ab4-sbx-1.iam.gserviceaccount.com'
       ]
 
-# Optional: registers the final image in Cloud Build's metadata
+# Register the image in Cloud Build metadata
 images:
   - 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}'
