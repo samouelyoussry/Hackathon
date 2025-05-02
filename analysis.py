@@ -125,64 +125,65 @@ def show_commit_analysis(repo_name, token):
 
 def generate_report(repo_name, token, days):
     try:
-        with st.spinner("Fetching commits and generating analysis..."):
+        with st.spinner("Fetching commits..."):
             # Initialize GitHub loader and fetch commits
             loader = LocalGitHubLoader(token)
-            commits_df = loader.get_repo_commits(repo_name,days)
-            
+            commits_df = loader.get_repo_commits(repo_name, days)
+
             if commits_df.empty:
                 st.info("No commits found in the selected time period.")
                 return
-            
-            # Display commit summary
-            st.subheader("📝 Commit Summary")
-            
-            # Style the DataFrame
-            st.dataframe(
-                commits_df,
-                column_config={
-                    "time": st.column_config.TextColumn("Time"),
-                    "message": st.column_config.TextColumn("Message"),
-                    "changes": st.column_config.TextColumn("Changes"),
-                    "files": st.column_config.NumberColumn("Files"),
-                    "url": st.column_config.LinkColumn("Link")
-                },
-                use_container_width=True,
-                hide_index=True
-            )
-            
-            # Generate AI analysis
-            with st.spinner("AI is analyzing your commits..."):
-                # Get analysis of all commits
-                analysis_response = create_analysis_chain().invoke({
-                    "commits": commits_df.to_markdown(),
-                    "diff_data": ""
-                })
-                
-                # Get detailed analysis of first commit if available
-                if not commits_df.empty:
-                    try:
-                        github_url = commits_df.iloc[0]['url']
-                        diff_data = loader.get_github_diff(github_url)
-                        url_response = create_url_analysis_chain().invoke(str(diff_data))
-                    except Exception as e:
-                        st.warning(f"Could not fetch detailed commit data: {str(e)}")
-                        url_response = "Detail analysis unavailable."
-                
-                # Display the analysis results
-                st.subheader("🔍 AI Analysis")
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.markdown("### 📊 Overview Analysis")
+
+            # Create tabs
+            tab1, tab2, tab3 = st.tabs(["📝 Commit Summary", "📊 Overview Analysis", "🔎 Detailed Analysis"])
+
+            with tab1:
+                st.subheader("📝 Commit Summary")
+                # Style the DataFrame
+                st.dataframe(
+                    commits_df,
+                    column_config={
+                        "time": st.column_config.TextColumn("Time"),
+                        "message": st.column_config.TextColumn("Message"),
+                        "changes": st.column_config.TextColumn("Changes"),
+                        "files": st.column_config.NumberColumn("Files"),
+                        "url": st.column_config.LinkColumn("Link")
+                    },
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+            with tab2:
+                st.subheader("📊 Overview Analysis")
+                with st.spinner("AI is analyzing your commits..."):
+                    # Get analysis of all commits
+                    analysis_response = create_analysis_chain().invoke({
+                        "commits": commits_df.to_markdown(),
+                        "diff_data": ""
+                    })
                     st.markdown(getattr(analysis_response, 'content', str(analysis_response)))
-                
-                with col2:
-                    st.markdown("### 🔎 Detailed Analysis")
-                    st.markdown(getattr(url_response, 'content', str(url_response)))
+
+            with tab3:
+                st.subheader("🔎 Detailed Analysis")
+                if not commits_df.empty:
+                    commit_options = commits_df['message'].tolist()
+                    commit_urls = commits_df['url'].tolist()
+                    selected_commit_message = st.selectbox("Select a commit to analyze:", [""] + commit_options)
+                    if selected_commit_message:
+                            selected_index = commit_options.index(selected_commit_message)
+                            selected_url = commit_urls[selected_index]
+                            with st.spinner(f"AI is fetching details for: {selected_commit_message}"):
+                                try:
+                                    diff_data = loader.get_github_diff(selected_url)
+                                    url_response = create_url_analysis_chain().invoke(str(diff_data))
+                                    st.markdown(getattr(url_response, 'content', str(url_response)))
+                                except Exception as e:
+                                    st.warning(f"Could not fetch detailed commit data: {str(e)}")
+                                    st.markdown("Detailed analysis unavailable for this commit.")
+                    elif not selected_commit_message:
+                        st.info("Please select a commit from the list before clicking 'Generate Analysis Report'.")
+
     except ImportError as e:
         st.error(f"Missing dependencies: {e}. Try installing them via pip.")
     except Exception as e:
         st.error(f"An unexpected error occurred: {e}")
-
