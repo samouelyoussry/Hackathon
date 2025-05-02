@@ -38,7 +38,7 @@ steps:
         '--port', '8501',                                           # Cloud Run will listen on this port
         '--memory', '4Gi',                                          # Set memory to 4 GiB
         '--cpu', '4',                                               # Set CPU to 4 vCPU
-        '--vpc-connector', 'standup-connector',                     # attach to VPC
+        #'--vpc-connector', 'standup-connector',                     # attach to VPC
         #'--vpc-egress', 'all-traffic',                         # send all traffic through the VPC
         '--service-account', 'standup-bot-sa@nse-gcp-ema-tt-37ab4-sbx-1.iam.gserviceaccount.com'
       ]
