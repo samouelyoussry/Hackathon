@@ -1,41 +1,39 @@
-# Enable Cloud Logging for the build (avoids logging-related errors when using custom service accounts)
 options:
   logging: CLOUD_LOGGING_ONLY
 
+substitutions:
+  _TAG_SUFFIX: $SHORT_SHA-$(date +%s)
+
 steps:
-  # Step 1: Build the Docker image using the Dockerfile in the repo root
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'build',
         '-t',
-        'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA',  # image tag with commit SHA
+        'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}',
         '-f',
-        'dockerfile',  # name of the Dockerfile
-        '.'             # build context (current directory)
+        'dockerfile',
+        '.'
       ]
 
-  # Step 2: Push the Docker image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'push',
-        'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA'
+        'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}'
       ]
 
-  # Step 3: Deploy the pushed image to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'  # uses gcloud CLI
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       [
-        'run', 'deploy', 'standup-bot',  # name of the Cloud Run service
-        '--image', 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA',
+        'run', 'deploy', 'standup-bot',
+        '--image', 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}',
         '--region', 'us-east1',
         '--platform', 'managed',
-        '--allow-unauthenticated',  # makes the service publicly accessible
+        '--allow-unauthenticated',
         '--service-account', 'standup-bot-sa@nse-gcp-ema-tt-37ab4-sbx-1.iam.gserviceaccount.com'
       ]
 
-# Optional but recommended: explicitly list the image so Cloud Build records it in the build metadata
 images:
-  - 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:$SHORT_SHA'
+  - 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}'
