@@ -32,7 +32,7 @@ steps:
       [
         'run', 'deploy', 'standup-bot',                              # Cloud Run service name
         '--image', 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}',
-        '--region', 'us-east1',                                     # Cloud Run region
+        '--region', 'us-central1',                                  # Cloud Run region
         '--platform', 'managed',                                    # Fully managed Cloud Run
         '--allow-unauthenticated',                                  # Public access
         '--port', '8501',                                           # Cloud Run will listen on this port
