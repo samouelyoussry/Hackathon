@@ -22,7 +22,7 @@ def init_vertex_ai():
                 service_account_info = json.load(f)
                 
             # Set environment variable
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gcp-service-account.json"
+            #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gcp-service-account.json"
             
             # Initialize Vertex AI
             aiplatform.init(
