@@ -5,7 +5,8 @@ import pandas as pd
 import os
 import json
 from google.cloud.scheduler_v1.services.cloud_scheduler import CloudSchedulerClient  # ✅ correct
-from google.cloud.scheduler_v1.types import Job, HttpTarget  # ✅ required types
+from google.cloud.scheduler_v1.types import Job, HttpTarget, HttpMethod   # ✅ required types
+#from google.cloud.scheduler_v1.types import Job, HttpTarget  
 from datetime import datetime, timedelta
 from cron_descriptor import FormatException, get_description
 from utils import LocalGitHubLoader, create_analysis_chain, create_url_analysis_chain
@@ -145,7 +146,7 @@ def create_scheduler_job(repo, token, cron_expr, days):
     job = {
         "http_target": {
             "uri": "https://standup-bot-1095165959029.us-central1.run.app",
-            "http_method": scheduler_v1.HttpMethod.POST,
+            "http_method": HttpMethod.POST,
             "headers": {"Content-Type": "application/json"},
             "body": json.dumps({
                 "repo": repo,
