@@ -4,6 +4,7 @@ import requests
 import pandas as pd
 import os
 import json
+from google.cloud import scheduler_v1
 from datetime import datetime, timedelta
 from cron_descriptor import FormatException, get_description
 from utils import LocalGitHubLoader, create_analysis_chain, create_url_analysis_chain
@@ -12,7 +13,9 @@ from cron_descriptor import get_description
 def show_analysis_page():
     st.title("📊 GitHub Repository Analysis")
     
-    if "access_token" in st.session_state:
+    # ✅ Updated to support GitHub PAT instead of OAuth
+    token = st.session_state.get("access_token")
+    if token:
         token = st.session_state["access_token"]
         
         # Fetch repositories with improved error handling
@@ -105,6 +108,7 @@ def show_commit_analysis(repo_name, token):
             if cron_expression:
                 try:
                     description = cron_descriptor.get_description(cron_expression)
+
                     st.info(f"Schedule Description: {description}")
                 except FormatException as e: 
                     st.error(f"Invalid Cron expression: {e}. Please check the syntax.")
@@ -122,6 +126,38 @@ def show_commit_analysis(repo_name, token):
         
         if submitted:
             generate_report(repo_name, token, days)
+           ###call to method 
+         # Create Scheduler Job
+            create_scheduler_job(
+            repo=repo_name,
+            token=token,
+            cron_expr=cron_expression,
+            days=days
+    )
+            ####
+
+
+def create_scheduler_job(repo, token, cron_expr, days):
+    client = scheduler_v1.CloudSchedulerClient()
+    parent = "projects/your-project-id/locations/your-region"
+
+    job = {
+        "http_target": {
+            "uri": "https://standup-bot-1095165959029.us-central1.run.app",
+            "http_method": scheduler_v1.HttpMethod.POST,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({
+                "repo": repo,
+                "token": token,
+                "days": days
+            }).encode()
+        },
+        "schedule": cron_expr,
+        "time_zone": "Etc/UTC"
+    }
+
+    response = client.create_job(request={"parent": parent, "job": job})
+    return response
 
 def generate_report(repo_name, token, days):
     try:
