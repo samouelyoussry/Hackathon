@@ -12,3 +12,4 @@ python-dotenv
 ###########
 cron-descriptor
 tabulate
+google-cloud-scheduler
