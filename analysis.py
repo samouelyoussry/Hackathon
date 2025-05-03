@@ -4,7 +4,8 @@ import requests
 import pandas as pd
 import os
 import json
-from google.cloud import scheduler_v1
+from google.cloud.scheduler_v1.services.cloud_scheduler import CloudSchedulerClient  # ✅ correct
+from google.cloud.scheduler_v1.types import Job, HttpTarget  # ✅ required types
 from datetime import datetime, timedelta
 from cron_descriptor import FormatException, get_description
 from utils import LocalGitHubLoader, create_analysis_chain, create_url_analysis_chain
