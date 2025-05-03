@@ -139,7 +139,7 @@ def show_commit_analysis(repo_name, token):
 
 
 def create_scheduler_job(repo, token, cron_expr, days):
-    client = scheduler_v1.CloudSchedulerClient()
+    client = CloudSchedulerClient()
     parent = "projects/your-project-id/locations/your-region"
 
     job = {
