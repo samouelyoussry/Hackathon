@@ -9,10 +9,10 @@ import analysis
 # load_dotenv()
 
 # Configuration
-GITHUB_CLIENT_ID = "Ov23li7VLjufh99QANN9"
-GITHUB_CLIENT_SECRET = "1a1a346a1c8bcb35d5a3e8920e05b59f50df05c8"
-REDIRECT_URI = "https://standup-bot-1095165959029.us-central1.run.app/" 
-github_auth_url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read:user user:email"
+# GITHUB_CLIENT_ID = "Ov23li7VLjufh99QANN9"  # 🔁 Removed for PAT login
+# GITHUB_CLIENT_SECRET = "..."  # 🔁 Removed for PAT login
+# REDIRECT_URI = "..."  # 🔁 Removed for PAT login 
+# github_auth_url = "..."  # 🔁 Removed for PAT login
 
 # Page configuration
 st.set_page_config(
@@ -29,46 +29,9 @@ if "page" not in st.session_state:
     st.session_state.page = "home"
 
 # OAuth URL setup
-github_auth_url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read:user user:email"
+# github_auth_url = "..."  # 🔁 Removed for PAT login
 
 # Function to handle GitHub OAuth
-def handle_github_auth():        
-    # Handle OAuth code
-    query_params = st.query_params
-    code = query_params.get("code")
-    
-    if code:
-        with st.spinner("Authenticating with GitHub..."):
-            # Exchange code for access token
-            token_url = "https://github.com/login/oauth/access_token"
-            headers = {"Accept": "application/json"}
-            data = {
-                "client_id": GITHUB_CLIENT_ID,
-                "client_secret": GITHUB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": REDIRECT_URI
-            }
-            
-            try:
-                response = requests.post(token_url, headers=headers, data=data, verify=False)
-                if response.status_code == 200:
-                    access_token = response.json().get("access_token")
-                    if access_token:
-                        st.session_state["access_token"] = access_token
-                        st.session_state.authenticated = True
-                        
-                        # Verify token works
-                        user_resp = requests.get(
-                            "https://api.github.com/user",
-                            headers={"Authorization": f"Bearer {access_token}"},
-                            verify=False
-                        )
-                        if user_resp.status_code == 200:
-                            user_data = user_resp.json()
-                            st.session_state["username"] = user_data.get("login")
-                            st.query_params.clear()  # Clean URL
-                        else:
-                            st.error("Failed to fetch user data")
                             st.session_state.authenticated = False
                             if "access_token" in st.session_state:
                                 del st.session_state["access_token"]
@@ -78,7 +41,29 @@ def handle_github_auth():
                 st.error(f"Connection error: {str(e)}")
 
 # Function to create the navigation bar
-def create_nav():
+def 
+# ======================= 🔒 GitHub Token Authentication Replaced OAuth =======================
+token = st.text_input("🔐 Enter your GitHub Personal Access Token (PAT)", type="password")
+
+if token:
+    try:
+        github = Github(token)
+        user = github.get_user()
+        st.session_state.authenticated = True
+        st.session_state.username = user.login
+        st.success(f"✅ Authenticated as: {user.login}")
+    except Exception as e:
+        st.session_state.authenticated = False
+        st.error(f"❌ Authentication failed: {e}")
+else:
+    st.warning("Please enter your GitHub PAT to authenticate.")
+
+# 🔄 Redirect old login-based flows to token-based validation
+if not st.session_state.get("authenticated", False):
+    st.session_state.page = "home"
+
+
+create_nav():
     primary_color = "#86BC25"  # Deloitte Green
     secondary_color = "#43B02A" # Green 4
     text_color = "#333"
@@ -244,14 +229,15 @@ def create_nav():
         else:
             st.markdown(f"""
             <div style="display: flex; justify-content: flex-end;">
-                <a href="{github_auth_url}" target="_self" style="text-decoration: none;">
+                <!-- 🔁 OAuth login UI disabled, replaced by PAT -->
+<!-- <a href="{github_auth_url}" target="_self" style="text-decoration: none;">
                     <button style="padding: 8px 16px; background-color: #24292e; color: white; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
                         </svg>
                         Login
                     </button>
-                </a>
+                </a> -->
             </div>
             """, unsafe_allow_html=True)
 
@@ -349,7 +335,8 @@ def display_how_it_works():
         if not st.session_state.authenticated:
             st.markdown(f"""
             <div style="margin-top: 1rem;">
-                <a href="{github_auth_url}" target="_self" style="text-decoration: none;">
+                <!-- 🔁 OAuth login UI disabled, replaced by PAT -->
+<!-- <a href="{github_auth_url}" target="_self" style="text-decoration: none;">
                     <button style="padding: 10px 20px; background-color: #24292e; color: white; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
@@ -418,7 +405,28 @@ st.markdown(
         unsafe_allow_html=True
     )
 # Main app flow
-handle_github_auth()
+
+# ======================= 🔒 GitHub Token Authentication Replaced OAuth =======================
+token = st.text_input("🔐 Enter your GitHub Personal Access Token (PAT)", type="password")
+
+if token:
+    try:
+        github = Github(token)
+        user = github.get_user()
+        st.session_state.authenticated = True
+        st.session_state.username = user.login
+        st.success(f"✅ Authenticated as: {user.login}")
+    except Exception as e:
+        st.session_state.authenticated = False
+        st.error(f"❌ Authentication failed: {e}")
+else:
+    st.warning("Please enter your GitHub PAT to authenticate.")
+
+# 🔄 Redirect old login-based flows to token-based validation
+if not st.session_state.get("authenticated", False):
+    st.session_state.page = "home"
+
+
 create_nav()
 if st.session_state.page == "home":
     display_hero()
