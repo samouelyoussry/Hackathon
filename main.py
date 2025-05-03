@@ -32,16 +32,16 @@ if "page" not in st.session_state:
 # github_auth_url = "..."  # 🔁 Removed for PAT login
 
 # Function to handle GitHub OAuth
-                            st.session_state.authenticated = False
-                            if "access_token" in st.session_state:
-                                del st.session_state["access_token"]
-                else:
-                    st.error(f"Token exchange failed: {response.text}")
-            except Exception as e:
-                st.error(f"Connection error: {str(e)}")
+#                            st.session_state.authenticated = False
+ #                           if "access_token" in st.session_state:
+ #                               del st.session_state["access_token"]
+  #              else:
+   #                 st.error(f"Token exchange failed: {response.text}")
+    #        except Exception as e:
+     #           st.error(f"Connection error: {str(e)}")
 
 # Function to create the navigation bar
-def 
+#def 
 # ======================= 🔒 GitHub Token Authentication Replaced OAuth =======================
 token = st.text_input("🔐 Enter your GitHub Personal Access Token (PAT)", type="password")
 
