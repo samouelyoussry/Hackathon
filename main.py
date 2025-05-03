@@ -27,6 +27,7 @@ if token:
     try:
         github = Github(token)
         user = github.get_user()
+        st.session_state["access_token"] = token  # ✅ Save PAT in session state
         st.session_state.authenticated = True
         st.session_state.username = user.login
         st.success(f"✅ Authenticated as: {user.login}")
