@@ -14,5 +14,4 @@ cron-descriptor
 tabulate
 python-dotenv
 streamlit-modal 
-localtunnel
 numpy
