@@ -39,9 +39,9 @@ def init_vertex_ai():
             )
             
             return llm
-        else:
-            print("Service account file not found.")
-            return None
+#        else:
+ #           print("Service account file not found.")
+ #           return None
     except Exception as e:
         print(f"Error initializing Vertex AI: {str(e)}")
         return None
