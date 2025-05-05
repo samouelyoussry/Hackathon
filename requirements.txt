@@ -12,3 +12,6 @@ python-dotenv
 ###########
 cron-descriptor
 tabulate
+python-dotenv
+streamlit-modal 
+numpy

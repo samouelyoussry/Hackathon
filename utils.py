@@ -17,12 +17,12 @@ import json
 def init_vertex_ai():
     try:
         # Load JSON from file if it exists
-        if os.path.exists("gcp-service-account.json"):
-            with open("gcp-service-account.json", "r") as f:
-                service_account_info = json.load(f)
+#        if os.path.exists("gcp-service-account.json"):
+ #           with open("gcp-service-account.json", "r") as f:
+  #              service_account_info = json.load(f)
                 
             # Set environment variable
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gcp-service-account.json"
+   #         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gcp-service-account.json"
             
             # Initialize Vertex AI
             aiplatform.init(
@@ -39,9 +39,9 @@ def init_vertex_ai():
             )
             
             return llm
-        else:
-            print("Service account file not found.")
-            return None
+#        else:
+ #           print("Service account file not found.")
+ #           return None
     except Exception as e:
         print(f"Error initializing Vertex AI: {str(e)}")
         return None
