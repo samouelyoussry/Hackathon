@@ -125,11 +125,11 @@ def show_commit_analysis(repo_name, token):
 
 def generate_report(repo_name, token, days):
     try:
-        with st.spinner("Fetching commits and generating analysis..."):
+        with st.spinner("Fetching commits..."):
             # Initialize GitHub loader and fetch commits
             loader = LocalGitHubLoader(token)
-            commits_df = loader.get_repo_commits(repo_name,days)
-            
+            commits_df = loader.get_repo_commits(repo_name, days)
+
             if commits_df.empty:
                 st.info("No commits found in the selected time period.")
                 return

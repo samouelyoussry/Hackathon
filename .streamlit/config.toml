@@ -2,10 +2,12 @@
 headless = true
 address = "localhost"
 port = 8501
+enableCORS = false
+enableXsrfProtection = false
 
 [theme]
-primaryColor = "#4f46e5"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f8f9fa"
-textColor = "#262730"
-font = "sans serif"
+base="light"  # Or "dark"
+primaryColor="#FF4B4B" # Your primary branding color (optional, affects some elements)
+secondaryBackgroundColor="#F0F8FF" # Your desired background color (AliceBlue in this example)
+textColor="#262730" # Default text color (optional)
+font="sans serif" # Default font (optional)

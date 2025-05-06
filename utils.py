@@ -1,4 +1,4 @@
-from turtle import st
+#from turtle import st
 import requests
 import pandas as pd
 import os
