@@ -150,13 +150,12 @@ def generate_report(repo_name, token, days):
                 use_container_width=True,
                 hide_index=True
             )
-            
             # Generate AI analysis
             with st.spinner("AI is analyzing your commits..."):
                 # Get analysis of all commits
                 if repo_name:
                     github_url = commits_df.iloc[0]['url']
-                    owner, repo, commit_sha = parseURL(github_url)
+                    owner, repo, commit_sha = loader.parseURL(github_url)
                     diff_data = loader.get_github_diff(github_url)
                     query = (f"Here are some code changes in a commit {commit_sha}:\n"
                     f"{diff_data}\n"

@@ -11,7 +11,8 @@ import analysis
 # Configuration
 GITHUB_CLIENT_ID = "Ov23li7VLjufh99QANN9"
 GITHUB_CLIENT_SECRET = "1a1a346a1c8bcb35d5a3e8920e05b59f50df05c8"
-REDIRECT_URI = "https://standup-bot-1095165959029.us-central1.run.app/" 
+# REDIRECT_URI = "https://standup-bot-1095165959029.us-central1.run.app/" 
+REDIRECT_URI = "http://localhost:8501/" 
 github_auth_url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read:user user:email"
 
 # Page configuration

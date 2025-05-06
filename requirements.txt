@@ -9,6 +9,8 @@ pydantic
 PyGithub
 google-cloud-aiplatform
 python-dotenv
+streamlit
 ###########
 cron-descriptor
 tabulate
+sentence-transformers

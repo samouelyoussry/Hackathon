@@ -1,4 +1,4 @@
-#from turtle import st
+from turtle import st
 import requests
 import pandas as pd
 import os
@@ -19,8 +19,8 @@ import shutil
 from langchain_community.document_loaders import GitLoader
 from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 from langchain_google_vertexai import VertexAIEmbeddings
-
-# Initialize Vertex AI
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_core.runnables import RunnableParallel
 def init_vertex_ai():
     try:
         # Load JSON from file if it exists
@@ -52,7 +52,9 @@ def init_vertex_ai():
     except Exception as e:
         print(f"Error initializing Vertex AI: {str(e)}")
         return None
-
+llm = init_vertex_ai()
+if not llm:
+    print("Warning: AI service unavailable. Some features may not work.")
 # GitHub API integration
 class LocalGitHubLoader:
     def __init__(self, token):
@@ -80,27 +82,15 @@ class LocalGitHubLoader:
             return pd.DataFrame()
     
     def get_github_diff(self, url):
-        """Fetch detailed diff content including line changes"""
+        """Get detailed changes for a specific commit using GitHub API"""
+        owner, repo, commit_sha = self.parseURL(url)
+        
         try:
-            parsed = urlparse(url)
-            path_parts = parsed.path.strip("/").split("/")
+            # Get repository and commit through API
+            repo_obj = self.g.get_repo(f"{owner}/{repo}")
+            commit = repo_obj.get_commit(commit_sha)
             
-            if (len(path_parts) < 4 or 
-                "github.com" not in parsed.netloc or 
-                "commit" not in path_parts):
-                raise ValueError(f"Invalid GitHub commit URL format: {url}")
-            
-            commit_index = path_parts.index("commit") if "commit" in path_parts else -1
-            if commit_index == -1 or commit_index+1 >= len(path_parts):
-                raise ValueError(f"Could not find commit SHA in URL: {url}")
-            
-            owner = path_parts[0]
-            repo = path_parts[1]
-            commit_sha = path_parts[commit_index+1]
-            
-            repo = self.g.get_repo(f"{owner}/{repo}")
-            commit = repo.get_commit(commit_sha)
-            
+            # Get detailed file changes
             files = []
             for file in commit.files:
                 files.append({
@@ -121,59 +111,117 @@ class LocalGitHubLoader:
                 'files': files
             }
         except Exception as e:
-            print(f"Error fetching diff: {str(e)}")
-            return f"Unable to fetch diff: {str(e)}"
+            print(f"Error getting GitHub diff: {e}")
+            return None
 
-    def get_relevant_context(self, repo_url, commit_sha, query, k=5):
-        """Retrieve relevant code context using RAG"""
-        vectorstore = self.clone_and_index_repo(repo_url, commit_sha)
+    def get_relevant_context(self, repo_url, commit_sha, query, k=10):
+        """Retrieve relevant code context using RAG with enhanced access"""
+        if "github.com" in repo_url:
+            repo_name = "/".join(repo_url.split("github.com/")[1].split("/")[:2])
+        else:
+            repo_name = repo_url
         
-        # print(f"Indexed {len(vectorstore.docstore._dict)} documents")  # Should show >0     
-        docs = vectorstore.similarity_search(query, k=k)
-        
-        # Format for LLM consumption
-        return "\n\n".join(
-            f"File: {doc.metadata['file_path']}\n"
-            f"Content:\n{doc.page_content[:2000]}..."  # Truncate
-            for doc in docs
-        )
+        try:
+            # Get repository structure using GitHub API
+            repo = self.g.get_repo(repo_name)
+            
+            # Get all files in this commit for context
+            commit = repo.get_commit(commit_sha)
+            files_list = [f"{file.filename} ({file.status}: +{file.additions}/-{file.deletions})" 
+                        for file in commit.files]
+            
+            repo_structure = f"Repository: {repo_name}\n"
+            repo_structure += f"Commit: {commit_sha}\n"
+            repo_structure += f"Files changed in this commit:\n- " + "\n- ".join(files_list)
+            
+            # Get vectorstore for semantic search
+            vectorstore = self.clone_and_index_repo(repo_url, commit_sha)
+            
+            if not vectorstore:
+                return f"Repository Structure:\n{repo_structure}\n\n" + "No code files found for indexing."
+            
+            # Get relevant documents
+            docs = vectorstore.similarity_search(query, k=k)
+            
+            # Format with less truncation
+            doc_content = "\n\n".join(
+                f"File: {doc.metadata['file_path']}\n"
+                f"Content:\n{doc.page_content[:5000]}..."  # Increased character limit
+                for doc in docs
+            )
+            
+            # Combine structure and document content
+            return f"Repository Structure:\n{repo_structure}\n\n" + doc_content
+            
+        except Exception as e:
+            print(f"Error retrieving repository context: {e}")
+            return f"Error retrieving context: {str(e)}"
 
     def clone_and_index_repo(self, repo_url, commit_sha):
-        """Clone repo and create vector index"""
+        """Get repository content using GitHub API instead of cloning"""
         if "github.com" in repo_url:
             repo_name = "/".join(repo_url.split("github.com/")[1].split("/")[:2])
         else:
             repo_name = repo_url  # Assume it's already in "owner/repo" format
-        with tempfile.TemporaryDirectory() as temp_dir:
-            clone_dir = os.path.join(temp_dir, repo_name.replace('/', '_'))
-            os.makedirs(clone_dir, exist_ok=True)
-        if os.path.exists(clone_dir):
-            shutil.rmtree(clone_dir)
-        os.makedirs(clone_dir, exist_ok=True)
-    # Clone repository at specific commit using proper URL format
-        loader = GitLoader(
-            clone_url=f"https://{self.token}@github.com/{repo_name}.git",
-            repo_path=clone_dir,
-            branch=commit_sha,
-            file_filter=lambda file_path: not file_path.split('/')[-1].startswith('.')
-        )
         
-        # Load and split code
-        documents = loader.load()
+        # Use GitHub API to get repository content
+        repo = self.g.get_repo(repo_name)
+        documents = []
+        
+        # Get file list at this commit
+        files = repo.get_commit(commit_sha).files
+        
+        for file in files:
+            try:
+                # Skip files that don't meet our criteria (simplified filter)
+                if file.filename.startswith('.'):
+                    continue
+                    
+                # Get file content directly from GitHub API
+                content = repo.get_contents(file.filename, ref=commit_sha)
+                if content:
+                    # Create document for vector store
+                    documents.append(Document(
+                        page_content=content.decoded_content.decode('utf-8'),
+                        metadata={"file_path": file.filename}
+                    ))
+            except Exception as e:
+                print(f"Error getting content for {file.filename}: {e}")
+        
+        # Split documents and create vector store
         if not documents:
-            print(f"Warning: No documents found in repository at {repo_url} for commit {commit_sha}")
-            return None 
+            print(f"No documents found in repository {repo_name} at commit {commit_sha}")
+            return None
+            
         splitter = RecursiveCharacterTextSplitter.from_language(
             language=Language.PYTHON,
             chunk_size=1000,
             chunk_overlap=200
         )
         splits = splitter.split_documents(documents)
-        if not splits:
-            print(f"Warning: No text splits generated from documents")
-            return None
+    
         # Create vector store
         return FAISS.from_documents(splits, self.embeddings)
+    def parseURL(self, url):
+        """Parse GitHub URL safely"""
+        parsed = urlparse(url)
+        path_parts = parsed.path.strip("/").split("/")
+        
+        # More flexible URL validation
+        if (len(path_parts) < 4 or 
+            "github.com" not in parsed.netloc or 
+            "commit" not in path_parts):
+            raise ValueError(f"Invalid GitHub commit URL format: {url}")
+        
+        # Extract owner, repo, and commit SHA
+        commit_index = path_parts.index("commit") if "commit" in path_parts else -1
+        if commit_index == -1 or commit_index+1 >= len(path_parts):
+            raise ValueError(f"Could not find commit SHA in URL: {url}")
+        
+        owner = path_parts[0]
+        repo = path_parts[1]
+        commit_sha = path_parts[commit_index+1]
+        return owner, repo, commit_sha
 
 # LangChain prompt chains
 def create_analysis_chain():
@@ -216,8 +264,8 @@ def create_analysis_chain():
 
 def create_url_analysis_chain():
     # Initialize the LLM
-    llm = init_vertex_ai()
     if not llm:
+        llm = init_vertex_ai()
         return lambda x: "AI service unavailable"
     
     prompt = PromptTemplate.from_template("""
@@ -237,7 +285,8 @@ def create_url_analysis_chain():
     return {"diff_data": RunnablePassthrough(),
         "repo_context": RunnablePassthrough()} | prompt | llm
 
-def parseURL(url):
+def parseURL(self, url):
+    """Parse GitHub URL safely"""
     parsed = urlparse(url)
     path_parts = parsed.path.strip("/").split("/")
     
@@ -248,9 +297,6 @@ def parseURL(url):
         raise ValueError(f"Invalid GitHub commit URL format: {url}")
     
     # Extract owner, repo, and commit SHA
-    # Handle both:
-    # https://github.com/owner/repo/commit/sha
-    # https://github.com/owner/repo/blob/sha/file.py
     commit_index = path_parts.index("commit") if "commit" in path_parts else -1
     if commit_index == -1 or commit_index+1 >= len(path_parts):
         raise ValueError(f"Could not find commit SHA in URL: {url}")
