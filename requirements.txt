@@ -14,3 +14,7 @@ streamlit
 cron-descriptor
 tabulate
 sentence-transformers
+python-dotenv
+streamlit-modal 
+localtunnel
+numpy
