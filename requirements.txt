@@ -16,5 +16,4 @@ tabulate
 sentence-transformers
 python-dotenv
 streamlit-modal 
-localtunnel
 numpy
