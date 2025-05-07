@@ -1,4 +1,5 @@
 langchain
+langchain-core
 langchain-community
 langchain-google-vertexai
 fastapi
@@ -17,3 +18,4 @@ sentence-transformers
 python-dotenv
 streamlit-modal 
 numpy
+requests
