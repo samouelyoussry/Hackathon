@@ -21,37 +21,28 @@ from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 from langchain_google_vertexai import VertexAIEmbeddings
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.runnables import RunnableParallel
+
 def init_vertex_ai():
     try:
-        # Load JSON from file if it exists
-        if os.path.exists("gcp-service-account.json"):
-            with open("gcp-service-account.json", "r") as f:
-                service_account_info = json.load(f)
-                
-            # Set environment variable
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gcp-service-account.json"
-            
-            # Initialize Vertex AI
-            aiplatform.init(
-                project=service_account_info["project_id"],
-                location="us-east1"
-            )
-            
-            # Create LLM instance
-            llm = VertexAI(
-                model_name="gemini-1.5-pro",
-                temperature=0.3,
-                project=service_account_info["project_id"],
-                location="us-central1"
-            )
-            
-            return llm
-        else:
-            print("Service account file not found.")
-            return None
+        # Credentials are automatically handled in GCP environments
+        project_id = os.environ.get("GCP_PROJECT_ID", "nse-gcp-ema-tt-37ab4-sbx-1")
+
+        aiplatform.init(
+            project=project_id,
+            location="us-east1"
+        )
+
+        llm = VertexAI(
+            model_name="gemini-1.5-pro",
+            temperature=0.3,
+            project=project_id,
+            location="us-central1"
+        )
+        return llm
     except Exception as e:
         print(f"Error initializing Vertex AI: {str(e)}")
         return None
+    
 llm = init_vertex_ai()
 if not llm:
     print("Warning: AI service unavailable. Some features may not work.")
