@@ -1,4 +1,4 @@
-#from turtle import st
+# from turtle import st
 import requests
 import pandas as pd
 import os
@@ -47,15 +47,18 @@ llm = init_vertex_ai()
 if not llm:
     print("Warning: AI service unavailable. Some features may not work.")
 # GitHub API integration
+
+
 class LocalGitHubLoader:
     def __init__(self, token):
         self.g = Github(token) if token else Github()
         self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    def get_repo_commits(self,repo_name,days):
+ 
+    def get_repo_commits(self, repo_name, days, branch="main"):
         try:
             repo = self.g.get_repo(repo_name)
             since = datetime.now() - timedelta(days=days)
-            commits = list(repo.get_commits(since=since))
+            commits = list(repo.get_commits(since=since, sha=branch))
             commit_data = []
             for commit in commits:
                 stats = commit.stats
@@ -66,22 +69,37 @@ class LocalGitHubLoader:
                     'files': len(list(commit.files)),
                     'url': commit.html_url
                 })
-                
+
             return pd.DataFrame(commit_data)
         except Exception as e:
             print(f"Error fetching commits: {str(e)}")
             return pd.DataFrame()
-    
+
     def get_github_diff(self, url):
         """Get detailed changes for a specific commit using GitHub API"""
         owner, repo, commit_sha = self.parseURL(url)
         
         try:
-            # Get repository and commit through API
-            repo_obj = self.g.get_repo(f"{owner}/{repo}")
-            commit = repo_obj.get_commit(commit_sha)
-            
-            # Get detailed file changes
+            parsed = urlparse(url)
+            path_parts = parsed.path.strip("/").split("/")
+
+            if (len(path_parts) < 4 or
+                "github.com" not in parsed.netloc or
+                    "commit" not in path_parts):
+                raise ValueError(f"Invalid GitHub commit URL format: {url}")
+
+            commit_index = path_parts.index(
+                "commit") if "commit" in path_parts else -1
+            if commit_index == -1 or commit_index+1 >= len(path_parts):
+                raise ValueError(f"Could not find commit SHA in URL: {url}")
+
+            owner = path_parts[0]
+            repo = path_parts[1]
+            commit_sha = path_parts[commit_index+1]
+
+            repo = self.g.get_repo(f"{owner}/{repo}")
+            commit = repo.get_commit(commit_sha)
+
             files = []
             for file in commit.files:
                 files.append({
@@ -92,7 +110,7 @@ class LocalGitHubLoader:
                     'patch': file.patch,
                     'raw_url': file.raw_url
                 })
-            
+
             return {
                 'type': 'commit',
                 'sha': commit_sha,
@@ -215,6 +233,8 @@ class LocalGitHubLoader:
         return owner, repo, commit_sha
 
 # LangChain prompt chains
+
+
 def create_analysis_chain():
     prompt = PromptTemplate.from_template("""
     You are my personal assistant, helping prepare notes for my daily standup, to summarize what I worked on yesterday..
@@ -253,12 +273,13 @@ def create_analysis_chain():
         "repo_context": RunnablePassthrough()
     }) | prompt | llm
 
+
 def create_url_analysis_chain():
     # Initialize the LLM
     if not llm:
         llm = init_vertex_ai()
         return lambda x: "AI service unavailable"
-    
+
     prompt = PromptTemplate.from_template("""
     Analyze this GitHub changes:
     {diff_data}
