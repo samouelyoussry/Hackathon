@@ -275,10 +275,7 @@ def create_analysis_chain():
 
 
 def create_url_analysis_chain():
-    # Initialize the LLM
-    if not llm:
-        llm = init_vertex_ai()
-        return lambda x: "AI service unavailable"
+    
 
     prompt = PromptTemplate.from_template("""
     Analyze this GitHub changes:
