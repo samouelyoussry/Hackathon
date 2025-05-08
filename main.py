@@ -1,3 +1,4 @@
+from urllib.parse import urlencode
 import streamlit as st
 import requests
 from github import Github
@@ -11,9 +12,6 @@ import analysis
 # Configuration
 GITHUB_CLIENT_ID = "Ov23li7VLjufh99QANN9"
 GITHUB_CLIENT_SECRET = "1a1a346a1c8bcb35d5a3e8920e05b59f50df05c8"
-REDIRECT_URI = "https://standup-bot-1095165959029.us-central1.run.app/" 
-github_auth_url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read:user user:email"
-
 # Page configuration
 st.set_page_config(
     page_title="DBot - GitHub Assistant", 
@@ -27,55 +25,40 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "page" not in st.session_state:
     st.session_state.page = "home"
-
-# OAuth URL setup
-github_auth_url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=read:user user:email"
+if "github_token" not in st.session_state:
+    st.session_state.github_token = None
+if "username" not in st.session_state:
+    st.session_state.username = None
 
 # Function to handle GitHub OAuth
-def handle_github_auth():        
-    # Handle OAuth code
-    query_params = st.query_params
-    code = query_params.get("code")
+def authenticate_with_token(token):
+    """Authenticates with GitHub using a provided personal access token."""
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        user_resp = requests.get("https://api.github.com/user", headers=headers, verify=False)
+        user_resp.raise_for_status()  # Raise an exception for bad status codes
+        user_data = user_resp.json()
+        st.session_state.github_token = token
+        st.session_state.authenticated = True
+        st.session_state.username = user_data.get("login")
+        st.session_state["access_token"] = token
+        st.success("Successfully authenticated with GitHub!")
+        st.rerun()
+        return True
+    except requests.exceptions.RequestException as e:
+        st.error(f"Authentication failed: {e}")
+        st.session_state.authenticated = False
+        st.session_state.github_token = None
+        st.session_state.username = None
+        return False
     
-    if code:
-        with st.spinner("Authenticating with GitHub..."):
-            # Exchange code for access token
-            token_url = "https://github.com/login/oauth/access_token"
-            headers = {"Accept": "application/json"}
-            data = {
-                "client_id": GITHUB_CLIENT_ID,
-                "client_secret": GITHUB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": REDIRECT_URI
-            }
-            
-            try:
-                response = requests.post(token_url, headers=headers, data=data, verify=False)
-                if response.status_code == 200:
-                    access_token = response.json().get("access_token")
-                    if access_token:
-                        st.session_state["access_token"] = access_token
-                        st.session_state.authenticated = True
-                        
-                        # Verify token works
-                        user_resp = requests.get(
-                            "https://api.github.com/user",
-                            headers={"Authorization": f"Bearer {access_token}"},
-                            verify=False
-                        )
-                        if user_resp.status_code == 200:
-                            user_data = user_resp.json()
-                            st.session_state["username"] = user_data.get("login")
-                            st.query_params.clear()  # Clean URL
-                        else:
-                            st.error("Failed to fetch user data")
-                            st.session_state.authenticated = False
-                            if "access_token" in st.session_state:
-                                del st.session_state["access_token"]
-                else:
-                    st.error(f"Token exchange failed: {response.text}")
-            except Exception as e:
-                st.error(f"Connection error: {str(e)}")
+def show_login_form():
+    """Displays a form for the user to enter their GitHub token."""
+    with st.form("github_token_form"):
+        token = st.text_input("Enter your GitHub Personal Access Token:", type="password")
+        submitted = st.form_submit_button("Authenticate")
+        if submitted:
+            authenticate_with_token(token)
 
 # Function to create the navigation bar
 def create_nav():
@@ -242,18 +225,8 @@ def create_nav():
             """, unsafe_allow_html=True)
             
         else:
-            st.markdown(f"""
-            <div style="display: flex; justify-content: flex-end;">
-                <a href="{github_auth_url}" target="_self" style="text-decoration: none;">
-                    <button style="padding: 8px 16px; background-color: #24292e; color: white; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
-                        </svg>
-                        Login
-                    </button>
-                </a>
-            </div>
-            """, unsafe_allow_html=True)
+            st.warning("Please log in with your GitHub using Personal Access Token.")
+            
 
 # Function to display hero section
 def display_hero():
@@ -347,18 +320,8 @@ def display_how_it_works():
         """, unsafe_allow_html=True)
         
         if not st.session_state.authenticated:
-            st.markdown(f"""
-            <div style="margin-top: 1rem;">
-                <a href="{github_auth_url}" target="_self" style="text-decoration: none;">
-                    <button style="padding: 10px 20px; background-color: #24292e; color: white; border: none; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
-                        </svg>
-                        Login with GitHub
-                    </button>
-                </a>
-            </div>
-            """, unsafe_allow_html=True)        
+          st.warning("Please log in with your GitHub Personal Access Token.")
+          show_login_form()      
         else:
             st.markdown("""
             <div style="margin-top: 1rem;">
@@ -403,22 +366,22 @@ def display_how_it_works():
             </div>
         </div>
         """, unsafe_allow_html=True)
-st.markdown(
-        """
-        <style>
-        body {
-            background: linear-gradient(to bottom, #FFFFFF, #DDEFE8); /* White DDEFE8 Light Green */
-            background-attachment: fixed; /* Optional: keeps the gradient fixed during scrolling */
-        }
-        .stApp { /* This targets the main app container */
-            background-color: transparent; /* Make the default Streamlit background transparent */
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-# Main app flow
-handle_github_auth()
+        
+# st.markdown(
+#         """
+#         <style>
+#         body {
+#             background: linear-gradient(to bottom, #FFFFFF, #DDEFE8); /* White DDEFE8 Light Green */
+#             background-attachment: fixed; /* Optional: keeps the gradient fixed during scrolling */
+#         }
+#         .stApp { /* This targets the main app container */
+#             background-color: transparent; /* Make the default Streamlit background transparent */
+#         }
+#         </style>
+#         """,
+#         unsafe_allow_html=True
+#     )
+
 create_nav()
 if st.session_state.page == "home":
     display_hero()

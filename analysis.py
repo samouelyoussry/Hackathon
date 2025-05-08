@@ -6,7 +6,7 @@ import os
 import json
 from datetime import datetime, timedelta
 from cron_descriptor import FormatException, get_description
-from utils import LocalGitHubLoader, create_analysis_chain, create_url_analysis_chain
+from utils import LocalGitHubLoader, create_analysis_chain, create_url_analysis_chain, parseURL
 from cron_descriptor import get_description
 
 def show_analysis_page():
@@ -216,7 +216,16 @@ def generate_report(repo_name, token, days, selected_branch="main"):
                 st.info("No commits found in the selected time period.")
                 return
 
-            # Create tabs
+            if repo_name:
+                github_url = commits_df.iloc[0]['url']
+                owner, repo, commit_sha = loader.parseURL(github_url)
+                diff_data = loader.get_github_diff(github_url)
+                query = (f"Here are some code changes in a commit {commit_sha}:\n"
+                f"{diff_data}\n"
+                "What other repository files are relevant to understanding these changes?")
+                repo_context = loader.get_relevant_context(github_url, commit_sha, query)
+                
+              # Create tabs
             tab1, tab2, tab3 = st.tabs(["📝 Commit Summary", "📊 Overview Analysis", "🔎 Detailed Analysis"])
 
             with tab1:
@@ -239,11 +248,12 @@ def generate_report(repo_name, token, days, selected_branch="main"):
                 st.subheader("📊 Overview Analysis")
                 with st.spinner("AI is analyzing your commits..."):
                     # Get analysis of all commits
-                    analysis_response = create_analysis_chain().invoke({
-                        "commits": commits_df.to_markdown(),
-                        "diff_data": ""
-                    })
-                    st.markdown(getattr(analysis_response, 'content', str(analysis_response)))
+                    try:
+                        analysis_response = create_analysis_chain().invoke({"commits_df": commits_df.to_markdown(), "diff_data": diff_data,"repo_context": repo_context})
+                    except Exception as e:
+                            st.warning(f"Could not fetch commit data: {str(e)}")
+                            url_response = "Analysis unavailable."    
+                st.markdown(getattr(analysis_response, 'content', str(analysis_response)))
 
             with tab3:
                 st.subheader("🔎 Detailed Analysis")
@@ -257,14 +267,13 @@ def generate_report(repo_name, token, days, selected_branch="main"):
                             with st.spinner(f"AI is fetching details for: {selected_commit_message}"):
                                 try:
                                     diff_data = loader.get_github_diff(selected_url)
-                                    url_response = create_url_analysis_chain().invoke(str(diff_data))
+                                    url_response = create_url_analysis_chain().invoke({"diff_data": str(diff_data),"repo_context":repo_context})
                                     st.markdown(getattr(url_response, 'content', str(url_response)))
                                 except Exception as e:
                                     st.warning(f"Could not fetch detailed commit data: {str(e)}")
                                     st.markdown("Detailed analysis unavailable for this commit.")
                     elif not selected_commit_message:
                         st.info("Please select a commit from the list before clicking 'Generate Analysis Report'.")
-
     except ImportError as e:
         st.error(f"Missing dependencies: {e}. Try installing them via pip.")
     except Exception as e:
