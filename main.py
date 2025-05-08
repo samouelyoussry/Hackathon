@@ -281,12 +281,12 @@ def create_nav():
     with cols[0]:
         st.markdown(f"""
         <div class="navbar">
-             <div class="nav-logo">
+             <div class="nav-logo" >
             <h1 style="font-size: 3.5rem; font-weight: 800; margin-bottom: 1.5rem; line-height: 1.2; color: {DARK_GREEN};">
                 <span style="position: relative; color:{DARK_GREEN}">
                     D<span style="position: absolute; bottom: 1rem; right: -0.1rem; height: 12px; width: 12px; background-color: {PRIMARY_COLOR}; border-radius: 50%;"></span>
                 </span>
-                <span style="color: {PRIMARY_COLOR};">Bot</span>
+                <span style="color: {PRIMARY_COLOR}; position: absolute">Bot</span>
             </h1>
             </div>
 
