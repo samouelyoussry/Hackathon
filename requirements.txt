@@ -1,4 +1,5 @@
 langchain
+langchain-core
 langchain-community
 langchain-google-vertexai
 fastapi
@@ -9,6 +10,12 @@ pydantic
 PyGithub
 google-cloud-aiplatform
 python-dotenv
+streamlit
 ###########
 cron-descriptor
 tabulate
+sentence-transformers
+python-dotenv
+streamlit-modal 
+numpy
+requests
