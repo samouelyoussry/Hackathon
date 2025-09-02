@@ -2,47 +2,45 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _TAG_SUFFIX: '${SHORT_SHA}-${BUILD_ID}'  # Unique tag to avoid immutability issues
+  _TAG_SUFFIX: '${SHORT_SHA}-${BUILD_ID}'  # Unique tag per build
 
 steps:
-  # Step 1: Build the Docker image
+  # Step 1: Build Docker image for backend
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'build',
         '-t',
-        'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}',
+        'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/hackathon/backend:${_TAG_SUFFIX}',
         '-f',
-        'dockerfile',
-        '.'
+        'backend/dockerfile',
+        'backend'
       ]
 
-  # Step 2: Push the image to Artifact Registry
+  # Step 2: Push image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'push',
-        'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}'
+        'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/hackathon/backend:${_TAG_SUFFIX}'
       ]
 
-  # Step 3: Deploy to Cloud Run on port 8501
+  # Step 3: Deploy new Cloud Run service in europe-west1
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       [
-        'run', 'deploy', 'standup-bot',                              # Cloud Run service name
-        '--image', 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}',
-        '--region', 'us-central1',                                  # Cloud Run region
-        '--platform', 'managed',                                    # Fully managed Cloud Run
-        '--allow-unauthenticated',                                  # Public access
-        '--port', '8501',                                           # Cloud Run will listen on this port
-        '--memory', '4Gi',                                          # Set memory to 4 GiB
-        '--cpu', '4',                                               # Set CPU to 4 vCPU
-        #'--vpc-connector', 'standup-connector',                     # attach to VPC
-        #'--vpc-egress', 'all-traffic',                         # send all traffic through the VPC
-        '--service-account', 'standup-bot-sa@nse-gcp-ema-tt-37ab4-sbx-1.iam.gserviceaccount.com'
+        'run', 'deploy', 'backend',  # Cloud Run service name
+        '--image', 'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/hackathon/backend:${_TAG_SUFFIX}',
+        '--region', 'europe-west1',
+        '--platform', 'managed',
+        '--allow-unauthenticated',
+        '--port', '8000',   # backend dockerfile exposes 8000
+        '--memory', '4Gi',
+        '--cpu', '2',
+        '--service-account', '560118820546-compute@developer.gserviceaccount.com'
       ]
 
-# Register the image in Cloud Build metadata
+# Register image in Cloud Build metadata
 images:
-  - 'us-east1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/standup-bot/standup-bot:${_TAG_SUFFIX}'
+  - 'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/hackathon/backend:${_TAG_SUFFIX}'
