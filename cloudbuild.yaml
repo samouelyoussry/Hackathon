@@ -25,7 +25,7 @@ steps:
         'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/hackathon/backend:${_TAG_SUFFIX}'
       ]
 
-  # Step 3: Deploy new Cloud Run service in europe-west1
+  # Step 3: Deploy Cloud Run service in europe-west1
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -35,7 +35,7 @@ steps:
         '--region', 'europe-west1',
         '--platform', 'managed',
         '--allow-unauthenticated',
-        '--port', '8000',   # backend dockerfile exposes 8000
+        '--port', '8000',   # matches EXPOSE 8000 in dockerfile
         '--memory', '4Gi',
         '--cpu', '2',
         '--service-account', '560118820546-compute@developer.gserviceaccount.com'
