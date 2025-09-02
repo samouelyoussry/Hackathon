@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY . .
 
 # Copy .env into the image
-COPY .env .env
+#COPY .env .env
 
 EXPOSE 8000
 
