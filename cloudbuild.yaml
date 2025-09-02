@@ -16,13 +16,13 @@ steps:
         'backend/dockerfile',
         'backend'
       ]
-
+      
   # Step 2: Push image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'push',
-        'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-37ab4-sbx-1/hackathon/backend:${_TAG_SUFFIX}'
+        'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-e793c-sbx-1/hackathon/backend:${_TAG_SUFFIX}'
       ]
 
   # Step 3: Deploy Cloud Run service in europe-west1
