@@ -35,7 +35,7 @@ steps:
         '--region', 'europe-west1',
         '--platform', 'managed',
         '--allow-unauthenticated',
-        '--port', '8000',   # matches EXPOSE 8000 in dockerfile
+        '--port', '8080',   # matches EXPOSE 8080 in dockerfile
         '--memory', '4Gi',
         '--cpu', '2',
         '--service-account', '560118820546-compute@developer.gserviceaccount.com'
