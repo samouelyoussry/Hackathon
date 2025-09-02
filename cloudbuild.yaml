@@ -38,7 +38,7 @@ steps:
         '--port', '8000',   # matches EXPOSE 8000 in dockerfile
         '--memory', '4Gi',
         '--cpu', '2',
-        '--service-account', '560118820546@cloudbuild.gserviceaccount.com'
+        '--service-account', '560118820546-compute@developer.gserviceaccount.com'
       ]
 
 # Register image in Cloud Build metadata
