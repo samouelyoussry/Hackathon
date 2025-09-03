@@ -13,7 +13,7 @@ COPY . .
 # Copy .env into the image
 #COPY .env .env
 
-EXPOSE 8080
+EXPOSE 8000
 
 #CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "${PORT}"]
