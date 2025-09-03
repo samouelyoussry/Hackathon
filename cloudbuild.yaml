@@ -32,10 +32,11 @@ steps:
       [
         'run', 'deploy', 'backend',  # Cloud Run service name
         '--image', 'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-e793c-sbx-1/hackathon/backend:${_TAG_SUFFIX}',
+        '--command', 'uvicorn main:app --host 0.0.0.0 --prot 8000',
         '--region', 'europe-west1',
         '--platform', 'managed',
         '--allow-unauthenticated',
-        '--port', '8080',   # matches EXPOSE 8080 in dockerfile
+        '--port', '8000',   # matches EXPOSE 8080 in dockerfile
         '--memory', '4Gi',
         '--cpu', '2',
         '--service-account', '560118820546-compute@developer.gserviceaccount.com'
