@@ -41,7 +41,44 @@ steps:
         '--cpu', '2',
         '--service-account', '560118820546-compute@developer.gserviceaccount.com'
       ]
+#######################################################################################      
+  # Step 4: Build Docker image for frontend
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t',
+        'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-e793c-sbx-1/hackathon/frontend:${_TAG_SUFFIX}',
+        '-f',
+        'frontend/dockerfile',
+        'frontend'
+      ]
 
-# Register image in Cloud Build metadata
+  # Step 5: Push frontend image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'push',
+        'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-e793c-sbx-1/hackathon/frontend:${_TAG_SUFFIX}'
+      ]
+
+  # Step 6: Deploy frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      [
+        'run', 'deploy', 'frontend',
+        '--image', 'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-e793c-sbx-1/hackathon/frontend:${_TAG_SUFFIX}',
+        '--region', 'europe-west1',
+        '--platform', 'managed',
+        '--allow-unauthenticated',
+        '--port', '80',
+        '--memory', '4Gi',
+        '--cpu', '4',
+        '--service-account', '560118820546-compute@developer.gserviceaccount.com'
+      ]
+
+# Register images in Cloud Build metadata
 images:
   - 'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-e793c-sbx-1/hackathon/backend:${_TAG_SUFFIX}'
+  - 'europe-west1-docker.pkg.dev/nse-gcp-ema-tt-e793c-sbx-1/hackathon/frontend:${_TAG_SUFFIX}'
