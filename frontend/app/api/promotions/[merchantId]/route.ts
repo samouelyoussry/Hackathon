@@ -8,12 +8,18 @@ export async function GET(
   try {
     const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/promotions/${params.merchantId}`;
 
-    // Create Google Auth client with identity token
+    // ✅ Option A (Recommended): Use GoogleAuth to get an ID token automatically
     const auth = new GoogleAuth();
     const client = await auth.getIdTokenClient(backendUrl);
-
-    // Send request with signed token
     const response = await client.request({ url: backendUrl });
+
+    // ✅ Option B (Debug Only): Hardcoded token (expires in ~1h)
+    // const FIXED_TOKEN = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."; // <-- replace with gcloud auth print-identity-token
+    // const response = await fetch(backendUrl, {
+    //   headers: {
+    //     Authorization: `Bearer ${FIXED_TOKEN}`,
+    //   },
+    // });
 
     return NextResponse.json(response.data);
   } catch (err: any) {
