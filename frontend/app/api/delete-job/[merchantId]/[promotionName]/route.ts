@@ -3,30 +3,26 @@ import { GoogleAuth } from "google-auth-library";
 
 export async function GET(
   req: Request,
-  { params }: { params: { merchantId: string } }
+  { params }: { params: { merchantId: string; promotionName: string } }
 ) {
+  const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/delete-job/${params.merchantId}/${params.promotionName}`;
+
   try {
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/delete-job/${params.merchantId}/${params.promotionName}`;
-
-
-    // ✅ Option A (Recommended): Use GoogleAuth to get an ID token automatically
+    // --- Option 1: IAM Identity Token ---
     const auth = new GoogleAuth();
     const client = await auth.getIdTokenClient(backendUrl);
     const response = await client.request({ url: backendUrl });
 
-    // ✅ Option B (Debug Only): Hardcoded token (expires in ~1h)
-    // const FIXED_TOKEN = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."; // <-- replace with gcloud auth print-identity-token
+    // --- Option 2: Hardcoded Token (for debugging only) ---
     // const response = await fetch(backendUrl, {
-    //   headers: {
-    //     Authorization: `Bearer ${FIXED_TOKEN}`,
-    //   },
+    //   headers: { Authorization: `Bearer ${process.env.FIXED_BACKEND_TOKEN}` },
     // });
 
     return NextResponse.json(response.data);
-  } catch (err: any) {
-    console.error("Proxy error:", err.message || err);
+  } catch (error: any) {
+    console.error("Delete Job API error:", error.message || error);
     return NextResponse.json(
-      { error: "Proxy failed", details: err.message },
+      { error: "Failed to delete job" },
       { status: 500 }
     );
   }
