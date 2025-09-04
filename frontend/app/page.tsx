@@ -235,8 +235,7 @@ const scheduleJob = async (
   try {
     const transformedName = promotionName.toLowerCase().replace(/\s+/g, "-");
     const response = 
-      //await fetch( //`${process.env.NEXT_PUBLIC_API_BASE_URL}/schedule-job/${merchantId}/${transformedName}`);
-      await fetch(`/api/schedule-job/${merchantId}/${transformedName}`);
+      await fetch( //`${process.env.NEXT_PUBLIC_API_BASE_URL}/schedule-job/${merchantId}/${transformedName}`);
     if (!response.ok) {
       throw new Error("Failed to schedule job");
     }
@@ -252,8 +251,7 @@ const deleteJob = async (
   try {
     const transformedName = promotionName.toLowerCase().replace(/\s+/g, "-");
     const response =
-      //await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/delete-job/${merchantId}/${transformedName}`);
-        await fetch(`/api/delete-job/${merchantId}/${transformedName}`);
+      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/delete-job/${merchantId}/${transformedName}`);
     if (!response.ok) {
       throw new Error("Failed to delete job");
     }
