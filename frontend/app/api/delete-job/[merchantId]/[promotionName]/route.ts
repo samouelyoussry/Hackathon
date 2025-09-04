@@ -6,7 +6,8 @@ export async function GET(
   { params }: { params: { merchantId: string } }
 ) {
   try {
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/promotions/${params.merchantId}`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/delete-job/${params.merchantId}/${params.promotionName}`;
+
 
     // ✅ Option A (Recommended): Use GoogleAuth to get an ID token automatically
     const auth = new GoogleAuth();
