@@ -8,11 +8,9 @@ export async function GET(
   try {
     const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/promotions/${params.merchantId}`;
 
-    // Create Google Auth client for IAM token
     const auth = new GoogleAuth();
     const client = await auth.getIdTokenClient(backendUrl);
 
-    // Send request with identity token
     const response = await client.request({ url: backendUrl });
 
     return NextResponse.json(response.data);
