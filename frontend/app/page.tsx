@@ -215,9 +215,9 @@ const getIconComponent = (iconName: string): React.ReactNode => {
 
 const fetchPromotions = async (merchantId: string): Promise<Coupon[]> => {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/promotions/${merchantId}`
-    );
+    const response = 
+      // await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/promotions/${merchantId}`);
+         await fetch(`/api/promotions/${merchantId}`);
     if (!response.ok) {
       throw new Error("Failed to fetch promotions");
     }
@@ -234,9 +234,9 @@ const scheduleJob = async (
 ): Promise<void> => {
   try {
     const transformedName = promotionName.toLowerCase().replace(/\s+/g, "-");
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/schedule-job/${merchantId}/${transformedName}`
-    );
+    const response = 
+      //await fetch( //`${process.env.NEXT_PUBLIC_API_BASE_URL}/schedule-job/${merchantId}/${transformedName}`);
+      await fetch(`/api/delete-job/${merchantId}/${transformedName}`);
     if (!response.ok) {
       throw new Error("Failed to schedule job");
     }
@@ -251,9 +251,9 @@ const deleteJob = async (
 ): Promise<void> => {
   try {
     const transformedName = promotionName.toLowerCase().replace(/\s+/g, "-");
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/delete-job/${merchantId}/${transformedName}`
-    );
+    const response =
+      //await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/delete-job/${merchantId}/${transformedName}`);
+        await fetch(`/api/schedule-job/${merchantId}/${transformedName}`);
     if (!response.ok) {
       throw new Error("Failed to delete job");
     }
